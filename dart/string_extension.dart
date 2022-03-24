@@ -3,4 +3,8 @@ extension StringExtension on String {
     if (end == null) return this.substring(start);
     return this.substring(start, end);
   }
+
+  String replace(Pattern from, String replace) {
+    return this.replaceAll(from, replace);
+  }
 }
