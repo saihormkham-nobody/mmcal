@@ -8,20 +8,19 @@
 //-------------------------------------------------------------------------
 import 'date.dart';
 import 'math.dart';
+import 'string_extension.dart';
+import 'list_extension.dart';
 
 class ceDateTime {
-  late int _m_tz, ;
+  late final _m_jd, _m_tz;
+  late int _m_ct, _m_SG;
 
-
-
-constructor({m_jd,m_tz,int m_ct = 0,int m_SG = 2361222}) {
+ceDateTime({m_jd,m_tz,int m_ct = 0,int m_SG = 2361222}) {
 	// 2361222 - Gregorian start in British calendar (1752/Sep/14)
-	if(m_tz==undefined) _m_tz=ceDateTime.ltzoh();
-	else _m_tz = m_tz;// time zone for this particular instance 
-	if(m_jd==undefined) this.m_jd=ceDateTime.jdnow();
-	else this.m_jd = m_jd;// julian date in UTC
-	this.m_ct = m_ct; // calendar type [0=British (default), 1=Gregorian, 2=Julian]
-	this.m_SG = m_SG; // Beginning of Gregorian calendar in JDN [default=2361222]
+  _m_tz = m_tz ?? ceDateTime.ltzoh();// time zone for this particular instance 
+	_m_jd = m_jd ?? ceDateTime.jdnow();// julian date in UTC
+	_m_ct = m_ct; // calendar type [0=British (default), 1=Gregorian, 2=Julian]
+	_m_SG = m_SG; // Beginning of Gregorian calendar in JDN [default=2361222]
 }    
 //Start of core functions #############################################################
 //-------------------------------------------------------------------------
@@ -32,7 +31,7 @@ constructor({m_jd,m_tz,int m_ct = 0,int m_SG = 2361222}) {
   // ct:calendar type [Optional argument: 0=British (default), 1=Gregorian, 2=Julian]
   // SG: Beginning of Gregorian calendar in JDN [Optional argument: (default=2361222)])
 //output: Western date (y=year, m=month, d=day, h=hour, n=minute, s=second)
-static j2w(jd,ct=0,SG=2361222) {
+static j2w({jd,ct=0,SG=2361222}) {
 	// 2361222-Gregorian start in British calendar (1752/Sep/14)
 	var j,jf,y,m,d,h,n,s;
 	if (ct==2 || (ct==0 && (jd<SG))) {
@@ -65,7 +64,7 @@ static t2d(h,n,s) { return ((h-12)/24+n/1440+s/86400);}
   // ct:calendar type [Optional argument: 0=British (default), 1=Gregorian, 2=Julian]
   // SG: Beginning of Gregorian calendar in JDN [Optional argument: (default=2361222)])
 //output: Julian date
-static w2j(y,m,d,h=12,n=0,s=0,ct=0,SG=2361222) {
+static w2j({y,m,d,h=12,n=0,s=0,ct=0,SG=2361222}) {
 	// 2361222-Gregorian start in British calendar (1752/Sep/14)
 	var a=Math.floor((14-m)/12); y=y+4800-a; m=m+(12*a)-3;
 	var jd=d+Math.floor((153*m+2)/5)+(365*y)+Math.floor(y/4);
@@ -96,20 +95,20 @@ static j2u(jd)
 }
 //-------------------------------------------------------------------------
 // get current time in julian date
-static jdnow()
+static int jdnow()
 {
-	var dt=new Date();
+	final dt=new Date();
 	// the number of milliseconds since 1 January 1970 00:00:00 / 1000
-	var ut=dt.getTime()/1000.0;	
+	double ut=dt.getTime()/1000;	
 	return ceDateTime.u2j(ut);
 }
 //-------------------------------------------------------------------------
 // get local time zone offset between local time and UTC in days
-static ltzoh()
+static double ltzoh()
 {
-	var dt=new Date();
+	final dt=new Date();
 	// the difference, in minutes, between UTC and local time
-	var tz=dt.getTimezoneOffset()/60.0;
+	double tz=dt.getTimezoneOffset()/60.0;
 	return -tz; // between local time and UTC
 }
 //-------------------------------------------------------------------------
@@ -147,10 +146,10 @@ static ltzoh()
 // %W : Weekday [e.g. Saturday]
 // %w : Weekday number [0=sat, 1=sun, ..., 6=fri]
 // %zz : time zone (e.g. +08, +06:30)
-static j2s(jd,fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz",tz=0,ct=0,SG=2361222)
+static j2s({jd,fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz",tz=0,ct=0,SG=2361222})
 {	
 	jd+=tz/24.0;
-	var dt=ceDateTime.j2w(jd,ct,SG);	
+	var dt=ceDateTime.j2w(jd:jd,ct:ct,SG:SG);	
 	var s=Math.floor(dt.s);//shold not take round to make sure s<60
 	var l=Math.floor((dt.s-s)*1000); // not rounding
 	var jdn=Math.floor(jd+0.5);
@@ -244,7 +243,7 @@ static j2s(jd,fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz",tz=0,ct=0,SG=2361222)
 	fstr = "%zz"; re = new RegExp(fstr, 'g');
 	var tzs = tz < 0 ? "-" : "+";
 	var tzi = Math.floor(tz);
-	var tzh = "00" + tzi.toString();
+	String tzh = "00" + tzi.toString();
 	tzh = tzh.substr(tzh.length - 2);
 	rstr = tzs+tzh;
 	var tzf = tz - tzi;
@@ -276,7 +275,7 @@ static j2s(jd,fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz",tz=0,ct=0,SG=2361222)
 //  jd: julian date 
 //    positive integer: ok
 //    -1 : error
-static s2j(tstr,tz=0,ct=0,SG=2361222)
+static s2j({tstr,tz=0,ct=0,SG=2361222})
 {
     var str,pstr;
     var y=0,m=0,d=0,h=12,n=0,s=0,ls=0;
@@ -292,10 +291,10 @@ static s2j(tstr,tz=0,ct=0,SG=2361222)
 			pstr=str.substr(12,2); s=parseInt(pstr); //get second
 			if(str.length==17){ 
 				pstr=str.substr(14,3); ls=parseInt(pstr); 
-				s+=ls/1000.0; 
+				s+=ls/1000; 
 			}
 		}
-        jd=ceDateTime.w2j(y,m,d,h,n,s,ct,SG)-tz/24.0;  // convert to UTC      
+        jd=ceDateTime.w2j(y:y,m:m,d:d,h:h,n:n,s:s,ct:ct,SG:SG)-tz/24.0;  // convert to UTC      
     }
     return jd;
 }
@@ -303,33 +302,34 @@ static s2j(tstr,tz=0,ct=0,SG=2361222)
 // set time zone in hours for this instance
 SetTimezone(tz)//set time zone
 {
-	if(tz==undefined){ _m_tz=ceDateTime.ltzoh(); }
+  
+	if(tz==null){ _m_tz=ceDateTime.ltzoh(); }
     else if(tz<=14 || tz>=(-12)){ _m_tz=tz; }
 }
 //-------------------------------------------------------------------------
 // set time to now
 Set2Now()
 {
-	this.m_jd = ceDateTime.jdnow();
+	_m_jd = ceDateTime.jdnow();
 }
 //-------------------------------------------------------------------------
 // set time in jd
 SetJD(jd)
 {
-	this.m_jd=jd;
+	_m_jd=jd;
 }
 //-------------------------------------------------------------------------
 // set in unix time
 SetUnixTime(ut)
 {
-    this.m_jd=ceDateTime.u2j(ut);
+    _m_jd=ceDateTime.u2j(ut);
 }
 //-------------------------------------------------------------------------
 // set date time for a timezone and a calendar type
 // timezone and calendar type won't be affected (tz and ct remain unchanged)
-SetDateTime(year,month,day,hour=12,minute=0,second=0,tz=0,ct=0,SG=2361222)
+SetDateTime({year,month,day,hour=12,minute=0,second=0,tz=0,ct=0,SG=2361222})
 {
-    this.m_jd=ceDateTime.w2j(year,month,day,hour,minute,second,ct,SG)-tz/24.0;
+    _m_jd=ceDateTime.w2j(y:year,m:month,d:day,h:hour,n:minute,s:second,ct:ct,SG:SG)-tz/24.0;
 }
 //-------------------------------------------------------------------------
 // set time using a date time string
@@ -344,24 +344,24 @@ SetDateTime(year,month,day,hour=12,minute=0,second=0,tz=0,ct=0,SG=2361222)
 //   [optional argument: 0 - UTC]
 //  ct:calendar type [Optional argument: 0=British (default), 1=Gregorian, 2=Julian]
 //  SG: Beginning of Gregorian calendar in JDN [Optional argument: (default=2361222)])
-SetDateTimeString(tstr,tz=0,ct=0,SG=2361222)
+SetDateTimeString({tstr,tz=0,ct=0,SG=2361222})
 {
-	var jd=ceDateTime.s2j(tstr,tz,ct,SG);
-    if(jd>=0) this.m_jd=jd;
+	var jd=ceDateTime.s2j(tstr:tstr,tz:tz,ct:ct,SG:SG);
+    if(jd>=0) _m_jd=jd;
 }
 //-------------------------------------------------------------------------
 // set calendar type [0=British (default), 1=Gregorian, 2=Julian]
 SetCT(ct)
 {
 	ct=Math.round(ct%3);
-    this.m_ct=ct;
+  _m_ct=ct;
 }
 //-------------------------------------------------------------------------
 // set Beginning of Gregorian calendar in JDN [default=2361222]
 SetSG(sg)
 {
 	sg=Math.round(sg);
-    this.m_SG=sg;
+    _m_SG=sg;
 }
 //-------------------------------------------------------------------------
 // Get Date Time string
@@ -394,9 +394,9 @@ SetSG(sg)
 // %W : Weekday [e.g. Saturday]
 // %w : Weekday number [0=sat, 1=sun, ..., 6=fri]
 // %zz : time zone (e.g. +08, +06:30)
-ToString(fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz")
+ToString({fs="%Www %y-%mm-%dd %HH:%nn:%ss %zz"})
 {
-	return ceDateTime.j2s(this.m_jd, fs, _m_tz, this.m_ct, this.m_SG);
+	return ceDateTime.j2s(jd:_m_jd, fs:fs,tz: _m_tz, ct:_m_ct,SG: _m_SG);
 }
 //-------------------------------------------------------------------------
 // filter input string to get digits only
@@ -408,65 +408,65 @@ static GetDigits(str)
 }
 //-------------------------------------------------------------------------
 // get properties
-get jd() { return this.m_jd;} // julian date
-get jdl() { return (this.m_jd+_m_tz/24.0);} // julian date for this time zone
-get jdn(){ return Math.round(this.m_jd);} // julian date number
-get jdnl(){ return Math.round(this.m_jd+_m_tz/24.0);} // julian date number for this time zone
-get y(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get jd { return _m_jd;} // julian date
+get jdl { return (_m_jd+_m_tz/24.0);} // julian date for this time zone
+get jdn{ return Math.round(_m_jd);} // julian date number
+get jdnl{ return Math.round(_m_jd+_m_tz/24.0);} // julian date number for this time zone
+get y{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	return dt.y;
 } // year
 
-get m(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get m{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	return dt.m;
 } // month
 
-get d(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get d{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	return dt.d;
 } // day
 
-get h(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get h{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	return dt.h;
 } // hour [0-23]
 
-get n(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get n{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	return dt.n;
 } // minute
 
-get s(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get s{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	var s=Math.floor(dt.s);//shold not take round to make sure s<60
 	return s;
 } // second
 
-get l(){ 
-	var dt = ceDateTime.j2w(this.jdl,this.m_ct,this.m_SG);
+get l{ 
+	var dt = ceDateTime.j2w(this.jdl,_m_ct,_m_SG);
 	var s=Math.floor(dt.s);//shold not take round to make sure s<60
 	var l=Math.floor((dt.s-s)*1000); // not rounding
 	return l;
 } // millisecond
 
-get w(){ return (this.jdnl+2)%7;} // weekday [0=sat, 1=sun, ..., 6=fri]
-get ut(){ return ceDateTime.j2u(this.m_jd);} // unix time
-get tz(){ return _m_tz;} // time zone 
-get ct(){ return this.m_ct;} // calendar type
-get SG(){ return this.m_SG;} // Beginning of Gregorian calendar in JDN [default=2361222]
-get mlen(){ return ceDateTime.wml(this.y,this.m,this.m_ct,this.m_SG);} // length of this month
+get w{ return (this.jdnl+2)%7;} // weekday [0=sat, 1=sun, ..., 6=fri]
+get ut{ return ceDateTime.j2u(_m_jd);} // unix time
+get tz{ return _m_tz;} // time zone 
+get ct{ return _m_ct;} // calendar type
+get SG{ return _m_SG;} // Beginning of Gregorian calendar in JDN [default=2361222]
+get mlen{ return ceDateTime.wml(this.y,this.m,_m_ct,_m_SG);} // length of this month
 //----------------------------------------------------------------------------
 // find the length of western month
 // input: (y=year, m=month [Jan=1, ... , Dec=12],
 //  ct:calendar type [Optional argument: 0=British (default), 1=Gregorian, 2=Julian])
 //  SG: Beginning of Gregorian calendar in JDN [Optional argument: (default=2361222)])
 // output: (wml = length of the month)
-static wml(y,m,ct=0,SG=2361222) {
+static wml({y,m,ct=0,SG=2361222}) {
 	var j1,j2; var m2=m+1; var y2=y;
 	if(m2>12){y2++; m2%=12;}
-	j1=ceDateTime.w2j(y,m,1,12,0,0,ct,SG);
-	j2=ceDateTime.w2j(y2,m2,1,12,0,0,ct,SG);
+	j1=ceDateTime.w2j(y:y,m:m,d:1,h:12,n:0,s:0,ct:ct,SG:SG);
+	j2=ceDateTime.w2j(y:y2,m:m2,d:1,h:12,n:0,s:0,ct:ct,SG:SG);
 	return (j2-j1);
 }
 //-------------------------------------------------------------------------
@@ -478,7 +478,7 @@ static wml(y,m,ct=0,SG=2361222) {
 
 class ceMmDateTime extends ceDateTime {
 //-------------------------------------------------------------------------
-constructor(m_jd,m_tz,m_ct = 0,m_SG = 2361222) {
+ceMmDateTime({m_jd,m_tz,m_ct = 0,m_SG = 2361222}) {
 	super(m_jd,m_tz,m_ct,m_SG);
 }
 //-------------------------------------------------------------------------
@@ -721,7 +721,7 @@ static m2j(my,mm,md) {
 //  md = day of the month [1-30]
 // ... )
 SetMDateTime(my, mm, md, hour = 12, minute = 0, second = 0, tz = 0) {
-    this.m_jd = ceMmDateTime.m2j(my, mm, md)+ceDateTime.t2d(hour, minute, second) - tz / 24.0;
+    _m_jd = ceMmDateTime.m2j(my, mm, md)+ceDateTime.t2d(hour, minute, second) - tz / 24.0;
 }
 //-------------------------------------------------------------------------
 //Checking Astrological days
@@ -973,7 +973,7 @@ static cal_holiday(jdn) {
 	myt=yo.myt; my=yo.my; mm = yo.mm; md=yo.md;
 	mp=ceMmDateTime.cal_mp(md,mm,myt);
 	mmt=Math.floor(mm/13); var hs=[];
-	var go=ceDateTime.j2w(jdn);
+	var go=ceDateTime.j2w(jd:jdn);
 	gy=go.y; gm=go.m; gd=go.d;
 	//---------------------------------
 	// Thingyan
